@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sake Limit Ultimate</title>
+    <title>Sake Limit Guardian</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -28,40 +28,60 @@
         }
         h1 { margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #f1c40f; letter-spacing: 1px;}
         
-        /* メーター */
-        .meter-wrapper {
+        /* 終電アラートエリア (New!) */
+        .train-alert-box {
             background: #22303d;
+            border: 2px solid #3498db;
             border-radius: 15px;
             padding: 15px;
-            margin-bottom: 25px;
-            border: 1px solid #46637f;
-            position: sticky;
-            top: 0;
-            z-index: 10;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        .meter-header {
-            display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; color: #bdc3c7;
+        .train-time-input {
+            font-size: 1.2rem;
+            padding: 5px;
+            border-radius: 8px;
+            border: 1px solid #7f8c8d;
+            background: #ecf0f1;
+            color: #2c3e50;
+            font-weight: bold;
+            width: 120px;
+            text-align: center;
         }
-        .meter-container {
-            height: 35px; background-color: #58636d; border-radius: 20px; overflow: hidden; position: relative;
+        .countdown-text {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #3498db;
         }
+        .countdown-label { font-size: 0.8rem; color: #bdc3c7; }
+        
+        /* アラート時のスタイル変更用クラス */
+        .train-warning { border-color: #f1c40f; background: #4b4608; }
+        .train-warning .countdown-text { color: #f1c40f; }
+        
+        .train-danger { border-color: #e74c3c; background: #581313; animation: pulseRed 1s infinite; }
+        .train-danger .countdown-text { color: #e74c3c; }
+
+        @keyframes pulseRed { 0% { box-shadow: 0 0 5px #e74c3c; } 50% { box-shadow: 0 0 20px #e74c3c; } 100% { box-shadow: 0 0 5px #e74c3c; } }
+
+
+        /* メーター (既存) */
+        .meter-wrapper {
+            background: #22303d; border-radius: 15px; padding: 15px; margin-bottom: 25px;
+            border: 1px solid #46637f; position: sticky; top: 0; z-index: 10;
+        }
+        .meter-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; color: #bdc3c7; }
+        .meter-container { height: 35px; background-color: #58636d; border-radius: 20px; overflow: hidden; position: relative; }
         .meter-fill {
-            height: 100%; width: 0%; background-color: #2ecc71;
-            transition: width 0.4s, background-color 0.4s;
-            display: flex; align-items: center; justify-content: flex-end;
-            padding-right: 12px; font-weight: bold; font-size: 0.9rem; color: #fff;
+            height: 100%; width: 0%; background-color: #2ecc71; transition: width 0.4s;
+            display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; font-weight: bold; font-size: 0.9rem; color: #fff;
         }
-        .status-message {
-            margin-top: 10px; font-weight: bold; font-size: 1.1rem; min-height: 1.5em;
-        }
+        .status-message { margin-top: 10px; font-weight: bold; font-size: 1.1rem; min-height: 1.5em; }
 
         /* ボタン類 */
-        .section-title {
-            text-align: left; font-size: 0.9rem; color: #95a5a6; margin: 15px 0 5px 5px;
-        }
-        .button-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;
-        }
+        .section-title { text-align: left; font-size: 0.9rem; color: #95a5a6; margin: 15px 0 5px 5px; }
+        .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .drink-btn {
             border: none; border-radius: 12px; padding: 15px 5px; font-size: 1rem; font-weight: bold;
             cursor: pointer; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -69,99 +89,71 @@
         }
         .drink-btn:active { transform: translateY(4px); box-shadow: none; }
         .drink-btn small { font-size: 0.7rem; font-weight: normal; opacity: 0.9; margin-top: 3px; }
-
-        .btn-light { background-color: #3498db; }
-        .btn-strong { background-color: #e74c3c; }
+        .btn-light { background-color: #3498db; } .btn-strong { background-color: #e74c3c; }
         .btn-water { background-color: #00cec9; color: #2d3436; grid-column: span 2; }
-
-        /* 戻すボタン */
         .btn-undo {
             background-color: #95a5a6; color: white; width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px;
-            border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: none; /* 最初は非表示 */
+            border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: none;
         }
-        .btn-undo:active { transform: scale(0.98); }
-
-        /* リセットボタン */
         .btn-reset {
             background-color: #7f8c8d; color: white; width: 100%; padding: 15px; margin-top: 30px;
             border-radius: 10px; border: none; font-size: 0.9rem; cursor: pointer;
         }
-
         .water-alert {
             background: #e74c3c; color: white; padding: 10px; border-radius: 8px; font-weight: bold;
             margin-bottom: 15px; display: none; animation: pulse 1.5s infinite;
         }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
-
-        .footer-control {
-            background: #2c3e50; padding: 15px; border-radius: 15px; margin-top: 20px;
-        }
+        .footer-control { background: #2c3e50; padding: 15px; border-radius: 15px; margin-top: 20px; }
         input[type=range] { width: 100%; margin: 10px 0; accent-color: #f1c40f;}
-        .log-area {
-            text-align: left; font-size: 0.8rem; color: #7f8c8d; margin-top: 5px; max-height: 120px; overflow-y: auto;
-        }
+        .log-area { text-align: left; font-size: 0.8rem; color: #7f8c8d; margin-top: 5px; max-height: 120px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🍻 Sake Limit Ultimate</h1>
+    <h1>🛡️ Sake Limit Guardian</h1>
+
+    <div id="train-box" class="train-alert-box">
+        <div style="display:flex; justify-content:center; align-items:center; gap:10px;">
+            <label style="font-weight:bold;">終電・撤収時刻:</label>
+            <input type="time" id="trainTime" class="train-time-input" onchange="saveData()">
+        </div>
+        <div class="countdown-text" id="countdown-display">-- : --</div>
+        <div class="countdown-label">帰宅リミットまで</div>
+    </div>
 
     <div id="water-alert" class="water-alert">⚠️ 水を飲んでから1時間経過！<br>水を飲みましょう！</div>
 
     <div class="meter-wrapper">
-        <div class="meter-header">
-            <span>リミットまで</span>
-            <span id="score-display">0 / 100</span>
-        </div>
-        <div class="meter-container">
-            <div id="meter-fill" class="meter-fill">0%</div>
-        </div>
+        <div class="meter-header"><span>酔いリミットまで</span><span id="score-display">0 / 100</span></div>
+        <div class="meter-container"><div id="meter-fill" class="meter-fill">0%</div></div>
         <div id="status-message" class="status-message">シラフ</div>
     </div>
 
     <div class="section-title">🍺 ガブガブ系 (普通)</div>
     <div class="button-grid">
-        <button class="drink-btn btn-light" onclick="addDrink(25, 'ビール中')">
-            ビール/サワー<small>中ジョッキ (25pt)</small>
-        </button>
-        <button class="drink-btn btn-light" onclick="addDrink(50, 'ストロング')">
-            ストロング系<small>ロング缶 (50pt)</small>
-        </button>
+        <button class="drink-btn btn-light" onclick="addDrink(25, 'ビール中')">ビール/サワー<small>中ジョッキ (25pt)</small></button>
+        <button class="drink-btn btn-light" onclick="addDrink(50, 'ストロング')">ストロング系<small>ロング缶 (50pt)</small></button>
     </div>
-
     <div class="section-title">🍶 ちびちび系 (強い)</div>
     <div class="button-grid">
-        <button class="drink-btn btn-strong" onclick="addDrink(25, '日本酒(お猪口)')">
-            日本酒<small>お猪口1杯 (25pt)</small>
-        </button>
-        <button class="drink-btn btn-strong" onclick="addDrink(100, '日本酒(1合)')">
-            日本酒<small>一合徳利 (100pt)</small>
-        </button>
-        <button class="drink-btn btn-strong" onclick="addDrink(70, 'ワイン(グラス)')">
-            ワイン<small>グラス1杯 (70pt)</small>
-        </button>
-        <button class="drink-btn btn-strong" onclick="addDrink(30, 'ショット')">
-            洋酒ショット<small>ウイスキー等 (30pt)</small>
-        </button>
+        <button class="drink-btn btn-strong" onclick="addDrink(25, '日本酒(お猪口)')">日本酒<small>お猪口1杯 (25pt)</small></button>
+        <button class="drink-btn btn-strong" onclick="addDrink(100, '日本酒(1合)')">日本酒<small>一合徳利 (100pt)</small></button>
+        <button class="drink-btn btn-strong" onclick="addDrink(70, 'ワイン(グラス)')">ワイン<small>グラス1杯 (70pt)</small></button>
+        <button class="drink-btn btn-strong" onclick="addDrink(30, 'ショット')">洋酒ショット<small>ウイスキー等 (30pt)</small></button>
     </div>
-
     <div class="section-title">💧 回復</div>
     <div class="button-grid">
-        <button class="drink-btn btn-water" onclick="addWater()">
-            お水を飲んだ (回復 -5pt)
-        </button>
+        <button class="drink-btn btn-water" onclick="addWater()">お水を飲んだ (回復 -5pt)</button>
     </div>
 
     <div class="footer-control">
         <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
-            <label>飲み始めから</label>
-            <span id="time-display">0 時間</span>
+            <label>飲み始めから</label><span id="time-display">0 時間</span>
         </div>
         <input type="range" id="timeSlider" min="0" max="8" step="0.5" value="0" oninput="updateTime(this.value)">
-        
         <button id="btn-undo" class="btn-undo" onclick="undoLast()">↩️ 直前の入力を取り消す</button>
-
         <div class="log-area" id="log-area">履歴: なし</div>
     </div>
 
@@ -174,133 +166,140 @@
     let timeScore = 0;
     let lastWaterTime = Date.now();
     let drinkLogs = [];
-    let actionHistory = []; // 操作履歴（Undo用）
+    let actionHistory = [];
     const MAX_LIMIT = 100;
 
-    window.onload = function() { loadData(); };
+    window.onload = function() { loadData(); startTrainCheck(); };
 
-    // 水アラート監視
+    // --- 終電チェック機能 (New!) ---
+    function startTrainCheck() {
+        setInterval(() => {
+            const timeInput = document.getElementById('trainTime').value;
+            const display = document.getElementById('countdown-display');
+            const box = document.getElementById('train-box');
+
+            if (!timeInput) {
+                display.innerText = "-- : --";
+                box.className = "train-alert-box"; // スタイルリセット
+                return;
+            }
+
+            const now = new Date();
+            const [h, m] = timeInput.split(':').map(Number);
+            let target = new Date();
+            target.setHours(h, m, 0, 0);
+
+            // もしターゲットが現在より前なら、日付が変わった（明日の朝）とみなすか、過ぎたとするか
+            // ここではシンプルに「過ぎてたらマイナス表示」にする
+            if (target < now && (now.getHours() - h > 12)) { 
+                 // 例: 今23時で、ターゲットが01時の場合、ターゲットは「明日」
+                 target.setDate(target.getDate() + 1);
+            }
+
+            const diffMs = target - now;
+            const diffMins = Math.floor(diffMs / 1000 / 60);
+
+            if (diffMs > 0) {
+                const hours = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                display.innerText = `あと ${hours}時間 ${mins}分`;
+            } else {
+                display.innerText = "🚨 時間切れ！帰れ！";
+            }
+
+            // 色変えロジック
+            box.className = "train-alert-box"; // リセット
+            if (diffMs <= 0) {
+                box.classList.add('train-danger');
+                if (navigator.vibrate && diffMs > -5000) navigator.vibrate([200,100,200]); // 最初の5秒だけバイブ
+            } else if (diffMins <= 15) {
+                box.classList.add('train-warning');
+                display.innerText += " (会計して！)";
+            } else if (diffMins <= 30) {
+                // 30分前
+                display.style.color = "#f39c12";
+            }
+        }, 1000);
+    }
+
+    // --- 以下、既存ロジック ---
     setInterval(() => {
         if (totalDrinkScore === 0) return;
         const now = Date.now();
-        const diffMinutes = (now - lastWaterTime) / 1000 / 60;
-        const alertBox = document.getElementById('water-alert');
-        if (diffMinutes > 60) {
-            alertBox.style.display = 'block';
+        if ((now - lastWaterTime) / 1000 / 60 > 60) {
+            document.getElementById('water-alert').style.display = 'block';
         }
     }, 10000);
 
     function updateDisplay() {
         let currentScore = totalDrinkScore - waterScore - timeScore;
         if (currentScore < 0) currentScore = 0;
-
         const percentage = Math.min(currentScore, 100);
-        const meter = document.getElementById('meter-fill');
-        const status = document.getElementById('status-message');
-        const scoreDisplay = document.getElementById('score-display');
-        const undoBtn = document.getElementById('btn-undo');
         
-        meter.style.width = percentage + '%';
-        meter.innerText = Math.floor(percentage) > 10 ? Math.floor(percentage) + '%' : ''; 
-        scoreDisplay.innerText = Math.floor(currentScore) + ' / ' + MAX_LIMIT;
+        document.getElementById('meter-fill').style.width = percentage + '%';
+        document.getElementById('meter-fill').innerText = Math.floor(percentage) > 10 ? Math.floor(percentage) + '%' : ''; 
+        document.getElementById('score-display').innerText = Math.floor(currentScore) + ' / ' + MAX_LIMIT;
+        document.getElementById('btn-undo').style.display = actionHistory.length > 0 ? 'block' : 'none';
 
-        // Undoボタンの表示制御
-        undoBtn.style.display = actionHistory.length > 0 ? 'block' : 'none';
+        const status = document.getElementById('status-message');
+        const meter = document.getElementById('meter-fill');
 
         if (currentScore >= 100) {
-            meter.style.backgroundColor = '#e74c3c';
-            status.innerText = "🚨 限界突破！終了！";
-            status.style.color = '#e74c3c';
+            meter.style.backgroundColor = '#e74c3c'; status.innerText = "🚨 限界突破！終了！"; status.style.color = '#e74c3c';
         } else if (currentScore >= 80) {
-            meter.style.backgroundColor = '#e67e22';
-            status.innerText = "⚠️ もうやばい。水飲んで！";
-            status.style.color = '#e67e22';
+            meter.style.backgroundColor = '#e67e22'; status.innerText = "⚠️ もうやばい。水飲んで！"; status.style.color = '#e67e22';
         } else if (currentScore >= 50) {
-            meter.style.backgroundColor = '#f1c40f';
-            status.innerText = "🥴 ほろ酔い。ペース落として";
-            status.style.color = '#f1c40f';
+            meter.style.backgroundColor = '#f1c40f'; status.innerText = "🥴 ほろ酔い。ペース落として"; status.style.color = '#f1c40f';
         } else {
-            meter.style.backgroundColor = '#2ecc71';
-            status.innerText = "😊 まだ余裕あり";
-            status.style.color = '#2ecc71';
+            meter.style.backgroundColor = '#2ecc71'; status.innerText = "😊 まだ余裕あり"; status.style.color = '#2ecc71';
         }
     }
 
     function addDrink(points, name) {
         totalDrinkScore += points;
         addLog("🍺 " + name + " (+" + points + ")");
-        
-        // 履歴に追加
         actionHistory.push({ type: 'drink', val: points });
-        
-        updateDisplay();
-        saveData();
+        updateDisplay(); saveData();
         if (navigator.vibrate) navigator.vibrate(50);
     }
 
     function addWater() {
-        waterScore += 5;
-        lastWaterTime = Date.now();
+        waterScore += 5; lastWaterTime = Date.now();
         document.getElementById('water-alert').style.display = 'none';
         addLog("💧 お水 (-5)");
-        
-        // 履歴に追加
         actionHistory.push({ type: 'water', val: 5 });
-
-        updateDisplay();
-        saveData();
+        updateDisplay(); saveData();
         if (navigator.vibrate) navigator.vibrate(30);
     }
 
-    // --- Undo 機能 ---
     function undoLast() {
         if (actionHistory.length === 0) return;
-
-        const lastAction = actionHistory.pop(); // 最後の操作を取り出す
-
-        if (lastAction.type === 'drink') {
-            totalDrinkScore -= lastAction.val;
-        } else if (lastAction.type === 'water') {
-            waterScore -= lastAction.val;
-            // 水の時間は戻せないのでそのまま（再通知が早まるだけなので安全側）
-        }
-
-        // ログの先頭を削除
-        drinkLogs.shift();
-        renderLogs();
-
-        updateDisplay();
-        saveData();
+        const lastAction = actionHistory.pop();
+        if (lastAction.type === 'drink') totalDrinkScore -= lastAction.val;
+        else if (lastAction.type === 'water') waterScore -= lastAction.val;
+        drinkLogs.shift(); renderLogs(); updateDisplay(); saveData();
         alert("直前の入力を取り消しました");
     }
 
     function updateTime(val) {
         document.getElementById('time-display').innerText = val + " 時間";
-        timeScore = val * 15;
-        updateDisplay();
-        saveData();
+        timeScore = val * 15; updateDisplay(); saveData();
     }
 
     function addLog(msg) {
         const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        const logEntry = `<div><span style="color:#95a5a6">${time}</span> ${msg}</div>`;
-        drinkLogs.unshift(logEntry);
+        drinkLogs.unshift(`<div><span style="color:#95a5a6">${time}</span> ${msg}</div>`);
         renderLogs();
     }
-
     function renderLogs() {
-        const logArea = document.getElementById('log-area');
-        logArea.innerHTML = drinkLogs.length === 0 ? "履歴: なし" : drinkLogs.join('');
+        document.getElementById('log-area').innerHTML = drinkLogs.length === 0 ? "履歴: なし" : drinkLogs.join('');
     }
 
     function saveData() {
         const data = {
-            total: totalDrinkScore,
-            water: waterScore,
-            timeVal: document.getElementById('timeSlider').value,
-            lastWater: lastWaterTime,
-            logs: drinkLogs,
-            history: actionHistory // 履歴も保存
+            total: totalDrinkScore, water: waterScore, timeVal: document.getElementById('timeSlider').value,
+            lastWater: lastWaterTime, logs: drinkLogs, history: actionHistory,
+            trainTime: document.getElementById('trainTime').value // 終電時間も保存
         };
         localStorage.setItem('sakeLimitData', JSON.stringify(data));
     }
@@ -309,36 +308,30 @@
         const saved = localStorage.getItem('sakeLimitData');
         if (saved) {
             const data = JSON.parse(saved);
-            totalDrinkScore = data.total || 0;
-            waterScore = data.water || 0;
-            lastWaterTime = data.lastWater || Date.now();
-            drinkLogs = data.logs || [];
-            actionHistory = data.history || []; // 履歴復元
+            totalDrinkScore = data.total || 0; waterScore = data.water || 0;
+            lastWaterTime = data.lastWater || Date.now(); drinkLogs = data.logs || [];
+            actionHistory = data.history || [];
+            document.getElementById('timeSlider').value = data.timeVal || 0;
+            document.getElementById('time-display').innerText = (data.timeVal||0) + " 時間";
+            document.getElementById('trainTime').value = data.trainTime || ""; // 終電復元
             
-            const slider = document.getElementById('timeSlider');
-            slider.value = data.timeVal || 0;
-            timeScore = slider.value * 15;
-            document.getElementById('time-display').innerText = slider.value + " 時間";
-
-            renderLogs();
-            updateDisplay();
+            timeScore = (data.timeVal||0) * 15;
+            renderLogs(); updateDisplay();
         }
     }
 
     function resetData() {
-        if(confirm("データをリセットして、新しい飲み会を始めますか？")) {
+        if(confirm("新しい飲み会を始めますか？")) {
             localStorage.removeItem('sakeLimitData');
-            totalDrinkScore = 0;
-            waterScore = 0;
-            timeScore = 0;
-            drinkLogs = [];
-            actionHistory = [];
+            totalDrinkScore = 0; waterScore = 0; timeScore = 0; drinkLogs = []; actionHistory = [];
             document.getElementById('timeSlider').value = 0;
             document.getElementById('time-display').innerText = "0 時間";
+            document.getElementById('trainTime').value = ""; // 終電リセット
             lastWaterTime = Date.now();
-            
-            renderLogs();
-            updateDisplay();
+            renderLogs(); updateDisplay();
+            // 画面のリセットも
+            document.getElementById('countdown-display').innerText = "-- : --";
+            document.getElementById('train-box').className = "train-alert-box";
         }
     }
 </script>
